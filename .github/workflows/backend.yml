@@ -166,8 +166,8 @@ jobs:
           version_label: 'anyhasher-${{ github.run_number }}'
           region: 'us-west-2'  # Change to your AWS region
           deployment_package: 'backend/build/artifact.zip'  # Path to the artifact
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   Verify-production:
     needs: [deploy_to_eb]
