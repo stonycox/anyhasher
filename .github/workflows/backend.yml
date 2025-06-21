@@ -181,3 +181,4 @@ jobs:
           # curl -f http://${{ needs.deploy_to_eb.outputs.url }} || exit 1
 
           # adding additional comments to make this file run on CI/CD
+          # lets do some comment to increase version number :)
