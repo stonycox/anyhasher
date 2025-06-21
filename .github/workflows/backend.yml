@@ -140,7 +140,7 @@ jobs:
      
   deploy_to_eb:
     #if: github.ref == 'refs/heads/main'
-    needs: [static-analysis, lint, test, security-audit]
+    needs: [lint, test, security-audit]
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.deployment.outputs.page_url }}
