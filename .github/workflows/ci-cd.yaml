@@ -93,7 +93,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check for Vulnerabilities
-        run: cd backend && npm audit --audit-level=medium
+        run: cd backend && npm audit --audit-level=moderate
         
 
 # jobs:
