@@ -94,6 +94,35 @@ jobs:
 
       - name: Check for Vulnerabilities
         run: cd backend && npm audit --audit-level=moderate
+  
+  static-analysis:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16.x
+      - name: Install Dependencies
+        run: cd backend && npm i
+
+      - name: Build Backend
+        run: cd backend && npm run build
+
+      - name: Perform Analysis
+        uses: github/codeql-action/analyze@v2
+        
+        
         
 
 # jobs:
