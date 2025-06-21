@@ -14,13 +14,13 @@ jobs:
         uses: actions/cache@v3
         with:
           path: node_modules
-          key: node-modules-cahe
+          key: node-modules-cache
 
       - name: Checkout Code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
           node-version: 16.x
 
@@ -37,23 +37,34 @@ jobs:
         with:
           name: backend-artifact
           path: backend/build/artifact.zip
-lint:
-  needs [build]
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout Code
-      uses: actions/checkout@v1
 
-    - name: Setup Node
-      uses: actions/setup-node@v1
-      with:
-        node-version: 16.x
+  lint:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Cache Node Modules
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: node-modules-cache
 
-    - name: Install Dependencies
-      run: cd backend && npm i
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16.x
 
-    - name: Lint Code
-      run: cd backend && npm run lint
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: cd backend && npm i
+
+      - name: Lint Code
+        run: cd backend && npm run lint 
+
+
 
 # jobs:
 #   build:
