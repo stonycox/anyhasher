@@ -179,3 +179,5 @@ jobs:
           # Add any additional verification steps here, such as checking the health of the application
           # For example, you could use curl to check if the application is responding
           # curl -f http://${{ needs.deploy_to_eb.outputs.url }} || exit 1
+
+          # adding additional comments to make this file run on CI/CD
