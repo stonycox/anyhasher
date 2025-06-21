@@ -1,0 +1,181 @@
+name: Backend
+on: 
+  push:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/cd/backend.yml'
+    branches:
+      - main
+      - l4
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/cd/backend.yml'
+    branches:
+      - main
+      - l4
+jobs:
+  build:
+    name: 🛠️ Compile Frontend Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache Node Modules
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: node-modules-cache
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16.x
+
+      - name: Install Dependencies
+        run: cd backend && npm i
+
+      - name: Build Backend
+        run: cd backend && npm run build
+
+      # - name: Generate Artifact
+      #   run: cd backend/build && zip -r artifact.zip ./ -x '*.git*'
+      # - name: Store Artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: backend-artifact
+      #     path: backend/build/artifact.zip
+
+      - name: Store Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-artifact
+          path: backend/build
+
+  lint:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Cache Node Modules
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: node-modules-cache
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16.x
+
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: cd backend && npm i
+
+      - name: Lint Code
+        run: cd backend && npm run lint 
+
+  test:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Cache Node Modules
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: node-modules-cache
+      
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: cd backend && npm i
+
+      - name: Run Unit Tests
+        run: cd backend && npm t
+  
+  security-audit:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check for Vulnerabilities
+        run: cd backend && npm audit --audit-level=moderate
+  
+  # static-analysis:
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     security-events: write
+  #   steps:
+  #     - name: Checkout Code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Initialize CodeQL
+  #       uses: github/codeql-action/init@v2
+  #       with:
+  #         languages: javascript
+  #
+  #     - name: Setup Node
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 16.x
+  #     - name: Install Dependencies
+  #       run: cd backend && npm i
+  #
+  #     - name: Build Backend
+  #       run: cd backend && npm run build
+  #
+  #     - name: Perform Analysis
+  #       uses: github/codeql-action/analyze@v2
+     
+  deploy_to_eb:
+    #if: github.ref == 'refs/heads/main'
+    needs: [static-analysis, lint, test, security-audit]
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Get Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-artifact
+          path: backend/build
+
+      - name: Prepare ProcFile
+        run: |
+          echo "web: node server.js" > backend/build/Procfile
+      
+      - name: Zip Artifact
+        run: cd backend/build && zip -r artifact.zip . -x '*.git*'  # Exclude git files
+
+      - name: Deploy to Elastic Beans
+        uses: einaregilsson/beanstalk-deploy@v20
+        with:
+          application_name: 'AnyHasher'
+          environment_name: 'AnyHasher-env'
+          version_label: 'anyhasher-${{ github.run_number }}'
+          region: 'us-west-2'  # Change to your AWS region
+          deployment_package: 'backend/build/artifact.zip'  # Path to the artifact
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  Verify-production:
+    needs: [deploy_to_eb]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Deployment
+        run: |
+          echo "Deployment URL: ${{ needs.deploy_to_eb.outputs.url }}"
+          # Add any additional verification steps here, such as checking the health of the application
+          # For example, you could use curl to check if the application is responding
+          # curl -f http://${{ needs.deploy_to_eb.outputs.url }} || exit 1
