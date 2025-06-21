@@ -5,7 +5,7 @@ on:
   [push]
 
 jobs:
-  Compile:
+  build:
     name: 🛠️ Compile Frontend Code
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +37,23 @@ jobs:
         with:
           name: backend-artifact
           path: backend/build/artifact.zip
+lint:
+  needs [build]
+  runs-on: ubuntu-latest
+  steps:
+    - name: Checkout Code
+      uses: actions/checkout@v1
 
+    - name: Setup Node
+      uses: actions/setup-node@v1
+      with:
+        node-version: 16.x
+
+    - name: Install Dependencies
+      run: cd backend && npm i
+
+    - name: Lint Code
+      run: cd backend && npm run lint
 
 # jobs:
 #   build:
